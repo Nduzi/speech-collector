@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { resample } from "./resample";
 import { analyse } from "./quality";
 import { UploadQueue, Job, JobStore } from "./queue";
-import { Api, ApiError, RecordingRow } from "./api";
+import { Api, ApiError, RecordingRow, supabaseApi } from "./api";
 import { encodeWav } from "./endpointer";
 
 const sine = (f: number, sr: number, s: number, a = 0.5) => Float32Array.from({ length: Math.round(sr * s) }, (_, i) => a * Math.sin((2 * Math.PI * f * i) / sr));
@@ -146,4 +146,30 @@ describe("upload queue", () => {
     expect(q.status().waiting).toBe(0);
     expect(st.m.size).toBe(0);
   });
+});
+
+describe("supabase api error mapping", () => {
+  const withFetch = async (res: () => Response, f: () => Promise<void>) => {
+    const real = globalThis.fetch;
+    globalThis.fetch = (async () => res()) as typeof fetch;
+    try { await f(); } finally { globalThis.fetch = real; }
+  };
+  const wav = new Blob(["x"]);
+  it("treats Storage's 400 'Duplicate' as already uploaded", () =>
+    withFetch(() => new Response('{"statusCode":"409","error":"Duplicate","message":"The resource already exists","code":"KeyAlreadyExists"}', { status: 400 }), () => supabaseApi.uploadWav("a/b.wav", wav)));
+  it("treats a plain 409 as already uploaded", () => withFetch(() => new Response("{}", { status: 409 }), () => supabaseApi.uploadWav("a/b.wav", wav)));
+  it("keeps other 400s as permanent errors", async () => {
+    await withFetch(() => new Response('{"error":"invalid_mime_type"}', { status: 400 }), async () => {
+      await expect(supabaseApi.uploadWav("a/b.wav", wav)).rejects.toMatchObject({ status: 400, retryable: false });
+    });
+  });
+  it("treats 5xx and network errors as retryable", async () => {
+    await withFetch(() => new Response("oops", { status: 503 }), async () => {
+      await expect(supabaseApi.uploadWav("a/b.wav", wav)).rejects.toMatchObject({ status: 503, retryable: true });
+    });
+    const real = globalThis.fetch;
+    globalThis.fetch = (async () => { throw new TypeError("Failed to fetch"); }) as typeof fetch;
+    try { await expect(supabaseApi.insertRecording({} as RecordingRow)).rejects.toMatchObject({ status: 0, retryable: true }); } finally { globalThis.fetch = real; }
+  });
+  it("treats a duplicate recording row as saved", () => withFetch(() => new Response("{}", { status: 409 }), () => supabaseApi.insertRecording({} as RecordingRow)));
 });

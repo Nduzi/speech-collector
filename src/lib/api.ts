@@ -73,6 +73,7 @@ export const supabaseApi: Api = {
   async uploadWav(path, wav) {
     const r = await call(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${path}`, { method: "POST", headers: headers({ "Content-Type": "audio/wav", "x-upsert": "false", "cache-control": "3600" }), body: wav });
     if (r.status === 409) return; // an earlier attempt already stored this exact take; the path is unique to this speaker
+    if (r.status === 400 && /KeyAlreadyExists|"statusCode":\s*"?409/.test(await r.clone().text().catch(() => ""))) return; // Supabase Storage reports "Duplicate" as HTTP 400
     if (!r.ok) await fail(r, "Uploading");
   },
   async insertRecording(row) {

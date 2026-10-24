@@ -6,6 +6,7 @@ cd "$(dirname "$0")/.."
 npm test --silent
 npm run build --silent
 remote="$(git remote get-url origin)"
+sha="$(git rev-parse --short HEAD)"
 tmp="$(mktemp -d)"
 cp -R dist/. "$tmp"
 touch "$tmp/.nojekyll"
@@ -13,7 +14,7 @@ touch "$tmp/.nojekyll"
   cd "$tmp"
   git init -q -b gh-pages
   git add -A
-  git -c user.name="deploy" -c user.email="deploy@localhost" commit -q -m "Deploy $(date -u +%Y-%m-%dT%H:%MZ) from $(git -C - rev-parse --short HEAD 2>/dev/null || echo local)"
+  git -c user.name="deploy" -c user.email="deploy@localhost" commit -q -m "Deploy $(date -u +%Y-%m-%dT%H:%MZ) from $sha"
   git push -q -f "$remote" gh-pages
 )
 rm -rf "$tmp"
