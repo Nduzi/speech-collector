@@ -9,7 +9,7 @@ export function Consent({ onAgree }: { onAgree: () => void }) {
     <section className="sheet pad">
       <h1>Help a chess board learn to listen</h1>
       <p className="lead">
-        I’m <b>{RESEARCHER}</b>. For my final-year project at the <b>{INSTITUTION}</b> I’m building <b>{PROJECT_TITLE}</b>: you say a move out loud, like “E two, E four”, and the board moves the piece.
+        Hi there! I’m <b>{RESEARCHER}</b>. For my final-year project at the <b>{INSTITUTION}</b> I’m building <b>{PROJECT_TITLE}</b>: you say a move out loud, like “E two, E four”, and the board moves the piece.
       </p>
       <p>
         Chess squares are named with the letters <b>A to H</b> and the numbers <b>1 to 8</b>, so the board has to recognise exactly those {PROMPTS.length} sounds in many different voices, accents and microphones. A few minutes of your voice helps it work for more people. I’d really appreciate it.
