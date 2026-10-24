@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CONTACT_EMAIL, DEFAULT_ROUNDS, ETHICS_REF, INSTITUTION, PROMPTS } from "../config";
+import { CONTACT_EMAIL, DEFAULT_ROUNDS, ETHICS_REF, INSTITUTION, PROJECT_TITLE, PROMPTS, RESEARCHER } from "../config";
 
 export function Consent({ onAgree }: { onAgree: () => void }) {
   const [adult, setAdult] = useState(false);
@@ -7,10 +7,14 @@ export function Consent({ onAgree }: { onAgree: () => void }) {
   const minutes = Math.round((DEFAULT_ROUNDS * PROMPTS.length * 4.5) / 60);
   return (
     <section className="sheet pad">
-      <p className="eyebrow">University research project · {INSTITUTION}</p>
-      <h1>Help teach a computer to hear letters and numbers</h1>
+      <p className="eyebrow">Final-year project · {INSTITUTION}</p>
+      <h1>Help a chess board learn to listen</h1>
       <p className="lead">
-        We are building a speech recognition system for the letters <b>A to H</b> and the numbers <b>1 to 8</b>. To make it work for many different voices, we need recordings from many different people. Yours would be a real help.
+        We are building <b>{PROJECT_TITLE}</b>: you say a move out loud, such as “E two … E four”, and the board moves the piece for you.
+        This is the final-year project of <b>{RESEARCHER}</b> at the <b>{INSTITUTION}</b>, and he would really appreciate your contribution.
+      </p>
+      <p>
+        Chess squares are named with the letters <b>A to H</b> and the numbers <b>1 to 8</b>, so the board has to recognise exactly those {PROMPTS.length} words, spoken by many different people, accents and microphones. That is where you come in: a few minutes of your voice makes the system work for more people.
       </p>
 
       <ol className="steps">

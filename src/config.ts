@@ -5,7 +5,9 @@ export const SUPABASE_KEY = "sb_publishable_cSfHob3T6LE8QcuP2-8xbw_uY3GdUVA";
 export const BUCKET = "recordings";
 
 export const CONTACT_EMAIL = "u19050667@tuks.co.za";
-export const PROJECT_NAME = "Spoken letters and numbers";
+export const PROJECT_NAME = "Chess voice samples";
+export const RESEARCHER = "Sibulele Makhonco";
+export const PROJECT_TITLE = "a speech-controlled automated chess board";
 export const INSTITUTION = "University of Pretoria";
 /** Ethics clearance reference. Leave empty until one has been issued: it is only shown when set. */
 export const ETHICS_REF = "";

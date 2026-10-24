@@ -1,6 +1,6 @@
 # Speech collector
 
-A small website that asks people to say the letters **A–H** and the numbers **1–8** into their microphone and sends the
+The data-collection site for **Sibulele Makhonco's final-year project** (a speech-controlled automated chess board, University of Pretoria). It asks people to say the letters **A–H** and the numbers **1–8** into their microphone and sends the
 recordings to the project. It feeds the Speech Trainer (a separate, local project) with many different speakers.
 
 * **Site:** static React app, hosted on GitHub Pages. Nothing runs on a server of ours.
