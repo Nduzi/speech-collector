@@ -6,7 +6,7 @@ export class SimSource {
   trackLabel = "Simulated input (dev)";
   trackSettings: MediaTrackSettings = {};
   private timer: ReturnType<typeof setInterval> | null = null;
-  constructor(private mode: "ok" | "quiet" | "loud" = "ok") {}
+  constructor(private mode: "ok" | "quiet" | "loud" | "tap" = "ok") {}
 
   async start(_s: unknown, onChunk: (c: Float32Array) => void) {
     const chunk = 960; // 20 ms
@@ -20,7 +20,9 @@ export class SimSource {
         const t = n / this.sampleRate;
         const cyc = t % 3.4; // quiet 1.4 s, burst 0.5 s, quiet 1.5 s
         let v = 0.0006 * rnd();
-        if (cyc > 1.4 && cyc < 1.9) {
+        if (this.mode === "tap" && cyc > 1.4 && cyc < 1.7) {
+          v += 0.7 * Math.exp(-(cyc - 1.4) / 0.02) * Math.sin(2 * Math.PI * 160 * t); // a knock on the phone, not speech
+        } else if (this.mode !== "tap" && cyc > 1.4 && cyc < 1.9) {
           const u = (cyc - 1.4) / 0.5;
           const env = Math.sin(Math.PI * u) ** 2;
           v += amp * env * (0.6 * Math.sin(2 * Math.PI * 140 * t) + 0.4 * Math.sin(2 * Math.PI * 700 * t) + 0.25 * Math.sin(2 * Math.PI * 1500 * t) + 0.05 * rnd());

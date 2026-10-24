@@ -20,7 +20,7 @@ export class MicHandle {
     let src: MicLike = new MicSource();
     if (import.meta.env.DEV) {
       const sim = new URLSearchParams(location.search).get("sim");
-      if (sim) src = new (await import("./sim")).SimSource(sim === "quiet" ? "quiet" : sim === "loud" ? "loud" : "ok");
+      if (sim) src = new (await import("./sim")).SimSource(sim === "quiet" ? "quiet" : sim === "loud" ? "loud" : sim === "tap" ? "tap" : "ok");
     }
     // Plain, unprocessed speech where the browser allows it; gain control stays on so quiet phones are usable.
     const info = await src.start({ deviceId, echoCancellation: false, noiseSuppression: false, autoGainControl: true }, (c) => this.handler(c));

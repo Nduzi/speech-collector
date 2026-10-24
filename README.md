@@ -11,7 +11,9 @@ recordings to the project. It feeds the Speech Trainer (a separate, local projec
 
 1. The microphone is opened once (no echo cancellation or noise suppression requested; gain control on).
 2. `Endpointer` (the same detector as the Trainer's live test) finds the start and end of each word and keeps 300 ms before and 600 ms after.
-3. The take is resampled to **16 kHz mono** (windowed-sinc, low-passed to avoid aliasing) and checked: too quiet, clipped, too short, too long, noisy. Bad takes are re-requested (up to 3 times, then kept and flagged so you can filter them).
+3. The take is resampled to **16 kHz mono** (windowed-sinc, low-passed to avoid aliasing) and checked: too quiet, clipped, too short, too long, noisy, and **whether anyone actually spoke**.
+   Every letter and number contains a voiced vowel, so a take without a sustained vowel-like sound (a screen tap, a knock on the phone, a click, a breath, silence, a double-tap on "Record manually") is **never saved** and never moves the person on: they are asked again, and after three such tries "Skip this one" appears (nothing is saved for a skipped item).
+   Other problems (quiet, noisy, clipped) are re-requested up to 3 times and then kept and flagged so you can filter them. The speech thresholds were chosen against 80 real recordings (`src/lib/quality.ts`).
 4. Accepted takes are held for 6 seconds (so **Redo last** works), then queued. The queue stores them in the browser (IndexedDB), uploads
    with retry/back-off, and survives closed tabs and lost connections. Uploads are idempotent.
 5. Word order is shuffled per person and round, reproducibly, so a resumed round keeps its order.

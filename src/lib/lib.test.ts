@@ -62,8 +62,14 @@ describe("quality gate", () => {
     expect(analyse(x, 16000).flag).toBe("clipped");
   });
   it("blocks very short and very long takes", () => {
-    expect(analyse(sine(220, 16000, 0.1, 0.3), 16000).flag).toBe("too_short");
-    expect(analyse(sine(220, 16000, 4, 0.3), 16000).flag).toBe("too_long");
+    const short = analyse(sine(220, 16000, 0.1, 0.3), 16000);
+    expect(short.blocking).toBe(true); // too short to hold a letter or number, whichever reason is reported first
+    const x = take(0.3);
+    const long = new Float32Array(16000 * 4);
+    for (let i = 0; i < long.length; i++) long[i] = 0.0005 * Math.sin(i * 12.9898) * Math.cos(i * 4.1414);
+    long.set(sine(220, 16000, 0.5, 0.3), 8000);
+    expect(analyse(long, 16000).flag).toBe("too_long");
+    void x;
   });
   it("flags noisy takes but does not block them", () => {
     const q = analyse(take(0.05, 0.02), 16000);
@@ -172,4 +178,73 @@ describe("supabase api error mapping", () => {
     try { await expect(supabaseApi.insertRecording({} as RecordingRow)).rejects.toMatchObject({ status: 0, retryable: true }); } finally { globalThis.fetch = real; }
   });
   it("treats a duplicate recording row as saved", () => withFetch(() => new Response("{}", { status: 409 }), () => supabaseApi.insertRecording({} as RecordingRow)));
+});
+
+// ---------------------------------------------------------------------------------------------- "was a letter or number actually said?"
+import { decideTake } from "./decision";
+
+describe("speech check: taps, bumps and clicks are never accepted as recordings", () => {
+  const SR = 16000;
+  let seed = 11;
+  const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 2 ** 32) * 2 - 1;
+  const room = (s: number) => Float32Array.from({ length: Math.round(SR * s) }, () => 0.0005 * rnd());
+  const put = (x: Float32Array, y: Float32Array, atS: number) => { const o = Math.round(atS * SR); for (let i = 0; i < y.length && o + i < x.length; i++) x[o + i] += y[i]; return x; };
+  /** A vowel-like sound: harmonics of f0 shaped by a slow rise and fall. */
+  const vowel = (ms: number, f0 = 140, amp = 0.3) => { const n = Math.round((SR * ms) / 1000); return Float32Array.from({ length: n }, (_, i) => {
+    const t = i / SR, env = Math.sin((Math.PI * i) / n) ** 0.7;
+    return amp * env * [1, 0.7, 0.5, 0.35, 0.2].reduce((s, h, k) => s + h * Math.sin(2 * Math.PI * f0 * (k + 1) * t), 0) / 2.5;
+  }); };
+  /** A knock on a phone: a damped ring at a few hundred hertz. */
+  const thump = (amp = 0.6, f = 180, tau = 0.012) => Float32Array.from({ length: Math.round(SR * 0.25) }, (_, i) => amp * Math.exp(-i / SR / tau) * Math.sin((2 * Math.PI * f * i) / SR));
+  const click = () => { const y = new Float32Array(40); y[0] = 0.9; y[1] = -0.7; y[2] = 0.5; return y; };
+  const hiss = (ms: number, amp = 0.2) => Float32Array.from({ length: Math.round((SR * ms) / 1000) }, () => amp * rnd());
+  const take = (event: Float32Array, at = 0.35) => put(room(1.5), event, at);
+
+  it("accepts a spoken vowel at normal, quiet and brief lengths", () => {
+    for (const [ms, amp] of [[450, 0.3], [250, 0.3], [150, 0.3], [450, 0.04]] as const) {
+      const q = analyse(take(vowel(ms, 140, amp)), SR);
+      expect(q.speechless, `${ms} ms at ${amp}`).toBe(false);
+      expect(q.voicedMs).toBeGreaterThanOrEqual(100);
+    }
+  });
+  it("accepts women's and children's higher voices", () => {
+    for (const f0 of [220, 300, 380]) expect(analyse(take(vowel(400, f0)), SR).speechless, `f0 ${f0}`).toBe(false);
+  });
+  it("rejects a screen tap or bump (a damped thump), loud or soft", () => {
+    for (const [amp, f, tau] of [[0.6, 180, 0.012], [0.9, 120, 0.02], [0.2, 250, 0.01], [0.8, 160, 0.03], [0.8, 160, 0.05], [1, 90, 0.04]] as const) {
+      const q = analyse(take(thump(amp, f, tau)), SR);
+      expect(q.speechless, `thump ${amp}/${f}/${tau}`).toBe(true);
+      expect(q.flag).toBe("no_speech");
+      expect(q.blocking).toBe(true);
+    }
+  });
+  it("rejects a click, a breath or hiss, and silence", () => {
+    expect(analyse(take(click()), SR).speechless).toBe(true);
+    expect(analyse(take(hiss(400)), SR).speechless).toBe(true);
+    expect(analyse(room(1.5), SR).speechless).toBe(true);
+  });
+  it("rejects a tap even when it is followed by a long quiet tail of room sound", () => {
+    expect(analyse(put(take(thump()), hiss(500, 0.01), 0.5), SR).speechless).toBe(true);
+  });
+  it("a speechless take is never accepted, however many times it is tried", () => {
+    const q = analyse(take(thump()), SR);
+    for (const tries of [0, 3, 10, 50]) {
+      for (const reason of ["endpoint", "manual", "max_duration"]) {
+        const d = decideTake(q, { tries, maxRetries: 3, uiDuringCapture: false, reason });
+        expect(d.action, `tries ${tries} ${reason}`).toBe("retry");
+      }
+    }
+  });
+  it("a bump while the screen was being touched is ignored quietly, but a manual take always gets feedback", () => {
+    const q = analyse(take(thump()), SR);
+    expect(decideTake(q, { tries: 0, maxRetries: 3, uiDuringCapture: true, reason: "endpoint" }).action).toBe("ignore");
+    expect(decideTake(q, { tries: 0, maxRetries: 3, uiDuringCapture: true, reason: "manual" }).action).toBe("retry");
+  });
+  it("real speech is accepted even when the screen was touched, and quiet speech is kept after retries", () => {
+    expect(decideTake(analyse(take(vowel(400)), SR), { tries: 0, maxRetries: 3, uiDuringCapture: true, reason: "endpoint" }).action).toBe("accept");
+    const quiet = analyse(take(vowel(400, 140, 0.004)), SR);
+    expect(quiet.flag).toBe("too_quiet");
+    expect(decideTake(quiet, { tries: 0, maxRetries: 3, uiDuringCapture: false, reason: "endpoint" }).action).toBe("retry");
+    expect(decideTake(quiet, { tries: 3, maxRetries: 3, uiDuringCapture: false, reason: "endpoint" }).action).toBe("accept"); // still a spoken letter, so it is kept (flagged)
+  });
 });

@@ -29,7 +29,7 @@ from pathlib import Path
 
 URL = os.environ.get("SUPABASE_URL", "https://vkoluuojtrsyagttzchx.supabase.co").rstrip("/")
 BUCKET = "recordings"
-BAD_FLAGS = {"too_quiet", "clipped", "too_short", "too_long"}
+BAD_FLAGS = {"too_quiet", "clipped", "too_short", "too_long", "no_speech"}
 
 
 def key() -> str:

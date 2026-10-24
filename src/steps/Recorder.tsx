@@ -5,6 +5,7 @@ import { Icon, PenCircle } from "../icons";
 import { RecordingRow } from "../lib/api";
 import { Endpointer, encodeWav } from "../lib/endpointer";
 import { MicHandle } from "../lib/mic";
+import { decideTake } from "../lib/decision";
 import { analyse } from "../lib/quality";
 import { Job, UploadQueue } from "../lib/queue";
 import { resample } from "../lib/resample";
@@ -41,6 +42,10 @@ export function Recorder({ session, mic, queue, onSession, onRoundDone, onStop }
   const level = useRef(-90);
   const floor = useRef(-90);
   const retries = useRef(0);
+  const speechFails = useRef(0); // consecutive takes with no spoken letter or number in them
+  const [canSkip, setCanSkip] = useState(false);
+  const lastUi = useRef(0); // when the screen or keyboard was last touched
+  const capStart = useRef(0); // when the current capture began
   const held = useRef<{ job: Job; idx: number; tries: number } | null>(null);
   const timers = useRef<{ hold?: ReturnType<typeof setTimeout>; advance?: ReturnType<typeof setTimeout>; retry?: ReturnType<typeof setTimeout> }>({});
   const onUtt = useRef<(u: any) => void>(() => undefined);
@@ -58,8 +63,8 @@ export function Recorder({ session, mic, queue, onSession, onRoundDone, onStop }
 
   // ---- one endpointer for the lifetime of the screen
   useEffect(() => {
-    const ep = new Endpointer(mic.sampleRate, { hangoverMs: 600, maxDurationMs: 4000, noSpeechTimeoutMs: 0 }, {
-      onState: (st) => { if (st === "speech") setPhase("hearing"); },
+    const ep = new Endpointer(mic.sampleRate, { hangoverMs: 600, maxDurationMs: 4000, noSpeechTimeoutMs: 0, minSpeechMs: 120 }, {
+      onState: (st) => { if (st === "speech") { capStart.current = performance.now(); setPhase("hearing"); } },
       onLevel: (l, f) => { level.current = l; floor.current = f; },
       onUtterance: (u) => onUtt.current(u),
     });
@@ -76,6 +81,16 @@ export function Recorder({ session, mic, queue, onSession, onRoundDone, onStop }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mic]);
+
+  // taps and key presses make a bump the microphone hears; remember when they happened so such a take can be recognised
+  useEffect(() => {
+    const mark = () => { lastUi.current = performance.now(); };
+    const evs = ["pointerdown", "click", "keydown"] as const;
+    evs.forEach((e) => window.addEventListener(e, mark, true));
+    return () => evs.forEach((e) => window.removeEventListener(e, mark, true));
+  }, []);
+
+  useEffect(() => { retries.current = 0; speechFails.current = 0; setCanSkip(false); }, [cursor]);
 
   // ---- listen for the current word
   useEffect(() => {
@@ -103,9 +118,11 @@ export function Recorder({ session, mic, queue, onSession, onRoundDone, onStop }
     const x = resample(u.samples, u.sampleRate, TARGET_SR);
     const q = analyse(x, TARGET_SR);
     const tries = retries.current;
-    if (q.blocking && (tries < MAX_RETRIES_BEFORE_ACCEPT || q.durationMs < 100)) {
-      retries.current++;
-      setNote({ kind: "retry", text: q.message });
+    const d = decideTake(q, { tries, maxRetries: MAX_RETRIES_BEFORE_ACCEPT, uiDuringCapture: lastUi.current >= capStart.current - 400, reason: u.reason });
+    if (d.action === "ignore") { setTick((t) => t + 1); return; } // a tap or bump: just keep listening
+    if (d.action === "retry") {
+      if (d.speechless) { speechFails.current++; if (speechFails.current >= 3) setCanSkip(true); } else retries.current++;
+      setNote({ kind: "retry", text: d.message });
       setPhase("retry");
       timers.current.retry = setTimeout(() => setTick((t) => t + 1), 1200);
       return;
@@ -123,6 +140,7 @@ export function Recorder({ session, mic, queue, onSession, onRoundDone, onStop }
     clearTimeout(timers.current.hold);
     timers.current.hold = setTimeout(commitHeld, HOLD_MS);
     retries.current = 0;
+    speechFails.current = 0;
     setNote(q.blocking ? { kind: "warn", text: "Saved, though it wasn’t very clear. That’s fine." } : q.flag === "noisy" ? { kind: "warn", text: q.message } : null);
     setPhase("saved");
     const idx = cursor;
@@ -144,6 +162,15 @@ export function Recorder({ session, mic, queue, onSession, onRoundDone, onStop }
     retries.current = 0;
     if (h.idx === cursor) setTick((t) => t + 1);
     else setCursor(h.idx);
+  }
+
+  /** Leave this letter or number for later. Offered only after three takes with nothing spoken in them (a microphone problem). */
+  function skip() {
+    clearTimeout(timers.current.retry);
+    const idx = cursor;
+    const doneNow = (i: number) => !!sRef.current.done[takeKey(session.speakerId, plan[i].label, session.round)] || held.current?.job.key === takeKey(session.speakerId, plan[i].label, session.round);
+    setNote(null);
+    setCursor(plan.findIndex((_, i) => i > idx && !doneNow(i)));
   }
 
   function pause() {
@@ -213,6 +240,7 @@ export function Recorder({ session, mic, queue, onSession, onRoundDone, onStop }
         <button className="btn" onClick={pause} disabled={phase === "paused" || phase === "lost"}><Icon n="pause" /> Pause</button>
         <button className="btn" onClick={manual} disabled={phase === "paused" || phase === "lost" || phase === "processing" || phase === "saved"}>
           {phase === "hearing" ? <><Icon n="stop" /> Stop</> : <><Icon n="mic" /> Record manually</>}</button>
+        {canSkip && <button className="btn" onClick={skip} title="Nothing is saved for this one">Skip this one</button>}
         <span className="sp" />
         <button className="btn ghost" onClick={onStop}>Stop for now</button>
       </div>
