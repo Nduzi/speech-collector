@@ -43,7 +43,7 @@ export function About({ onBack, onRegistered }: { onBack: () => void; onRegister
   return (
     <form className="sheet pad" onSubmit={submit} noValidate>
       <h1>About you</h1>
-      <p className="lead">These answers help me check that the system works fairly for different voices. Only me and the people helping with this project see them.</p>
+      <p className="lead">These answers help me check that the system works fairly for different voices. Only I see them.</p>
 
       <div className="fields">
         <label className="f"><span>First name or nickname</span>

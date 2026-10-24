@@ -27,8 +27,8 @@ export function Consent({ onAgree }: { onAgree: () => void }) {
           <li><b>Your voice:</b> recordings of the {PROMPTS.length} letters and numbers, plus technical details of each one (length, loudness, microphone name).</li>
           <li><b>About you:</b> a first name or nickname (not your surname), age range, gender, home language, accent or region, country, and the microphone and room you used. For age and gender you can choose “prefer not to say”.</li>
           <li><b>What I don’t collect:</b> your surname, email address, phone number, ID number or location. The services that host this page and the data may keep ordinary technical logs, such as your IP address.</li>
-          <li><b>Who sees it:</b> only me and the people helping with this project. The recordings are used to train and test speech recognition models. They are not published, sold or shared with anyone else.</li>
-          <li><b>Where it’s stored:</b> a secured cloud database (Supabase) in Ireland. Only me and the people helping with this project can get into it.</li>
+          <li><b>Who sees it:</b> only me. The recordings are used to train and test speech recognition models. They are not published, sold or shared with anyone else.</li>
+          <li><b>Where it’s stored:</b> a secured cloud database (Supabase) in Ireland. Only I can get into it.</li>
           <li><b>How long:</b> only as long as the project needs it. Then I delete it.</li>
         </ul>
       </details>
