@@ -29,7 +29,8 @@ from pathlib import Path
 
 URL = os.environ.get("SUPABASE_URL", "https://vkoluuojtrsyagttzchx.supabase.co").rstrip("/")
 BUCKET = "recordings"
-BAD_FLAGS = {"too_quiet", "clipped", "too_short", "too_long", "no_speech"}
+BAD_FLAGS = {"too_quiet", "clipped", "too_short", "too_long"}
+INVALID_FLAGS = {"no_speech", "wrong_content"}  # never exported
 
 
 def key() -> str:
@@ -101,6 +102,7 @@ def cmd_download(a):
     out = Path(a.out).expanduser()
     sp = {s["id"]: s for s in rows("speakers")}
     rec = [r for r in rows("recordings", "order=created_at") if (a.include_withdrawn or not sp[r["speaker_id"]]["withdrawn_at"])]
+    rec = [r for r in rec if r["quality_flag"] not in INVALID_FLAGS]
     if a.skip_flagged:
         rec = [r for r in rec if r["quality_flag"] not in BAD_FLAGS]
     n_new = 0
