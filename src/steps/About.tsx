@@ -35,7 +35,7 @@ export function About({ onBack, onRegistered }: { onBack: () => void; onRegister
       await supabaseApi.registerSpeaker(id, body);
       onRegistered({ v: 1, speakerId: id, name: body.display_name, createdAt: Date.now(), targetRounds: DEFAULT_ROUNDS, round: 1, done: {}, retries: {}, finished: false });
     } catch (ex: any) {
-      setErr(ex?.status === 0 ? "We could not reach the server. Check your internet connection and try again." : "We could not save your details just now. Please try again in a moment.");
+      setErr(ex?.status === 0 ? "I could not reach the server. Check your internet connection and try again." : "Your details could not be saved just now. Please try again in a moment.");
       setBusy(false);
     }
   }
@@ -43,7 +43,7 @@ export function About({ onBack, onRegistered }: { onBack: () => void; onRegister
   return (
     <form className="sheet pad" onSubmit={submit} noValidate>
       <h1>About you</h1>
-      <p className="lead">These details help us check that the system works fairly for different voices. They stay with the project team.</p>
+      <p className="lead">These details help me check that the system works fairly for different voices. They stay with me and the people helping with this project.</p>
 
       <div className="fields">
         <label className="f"><span>First name or nickname</span>

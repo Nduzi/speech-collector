@@ -23,7 +23,7 @@ export function Done({ session, queue, status, canAddMore, onMore, onForget }: {
       {!pending && <div className="note ok" role="status"><Icon n="check" /> Everything has been sent. You can close this page.</div>}
 
       <h2>Your participant ID</h2>
-      <p className="muted small">Keep this if you ever want your recordings removed. Email it to <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> and we will delete everything linked to it.</p>
+      <p className="muted small">Keep this if you ever want your recordings removed. Email it to <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> and I will delete everything linked to it.</p>
       <div className="idbox"><code>{session.speakerId}</code><button className="btn small" onClick={copy}><Icon n="copy" /> {copied ? "Copied" : "Copy"}</button></div>
       <p className="muted small">Short form: <b className="num">{shortId(session.speakerId)}</b></p>
 
