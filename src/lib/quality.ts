@@ -18,11 +18,12 @@ export interface Quality {
 const db = (x: number) => 10 * Math.log10(x + 1e-12);
 
 export const NO_SPEECH_MESSAGE = "That didn’t sound like a letter or number. It may have been a tap or a bump. Wait until it says “Listening”, then say it out loud.";
-// Every one of the 16 prompts (A–H, one–eight) contains a voiced vowel. Chosen against 80 real recordings (shortest voiced total 160 ms, median 310 ms)
+// Every one of the 16 prompts (A–H, one–eight) contains a voiced vowel. Chosen against 166 real recordings from three people (shortest voiced total 160 ms for clean takes)
 // and against synthetic knocks, whose ring-down never held its level for 50 ms.
 const MIN_VOICED_MS = 100;
 const MIN_RUN_MS = 50;
 const MIN_SUSTAINED_MS = 50;
+const LONG_RUN_MS = 200;
 
 /** Time with vowel-like sound: frames (25 ms, every 10 ms) that are above the take's own background (by 6 dB) AND within 25 dB of its loudest
  *  frame AND periodic at a speaking pitch (80–400 Hz). A tap or thump rings for only a few frames, a click or breath is not periodic. */
@@ -105,7 +106,8 @@ export function analyse(x: Float32Array, sr: number): Quality {
     voicedMs: v.voicedMs,
     longestVoicedMs: v.longestMs,
     sustainedMs: v.sustainedMs,
-    speechless: v.voicedMs < MIN_VOICED_MS || v.longestMs < MIN_RUN_MS || v.sustainedMs < MIN_SUSTAINED_MS,
+    // a stretch of vowel-like sound longer than any knock rings for needs no steadiness test (speech with a gliding or pumping level, e.g. a phone's auto-gain)
+    speechless: v.voicedMs < MIN_VOICED_MS || v.longestMs < MIN_RUN_MS || (v.sustainedMs < MIN_SUSTAINED_MS && v.longestMs < LONG_RUN_MS),
     flag: "ok",
     message: "",
     blocking: false,
