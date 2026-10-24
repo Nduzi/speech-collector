@@ -40,7 +40,9 @@ def key() -> str:
 
 
 def call(method: str, path: str, body=None, headers: dict | None = None, raw: bool = False):
-    h = {"apikey": key(), "Authorization": f"Bearer {key()}", **(headers or {})}
+    h = {"apikey": key(), **(headers or {})}
+    if key().count(".") == 2:  # legacy JWT-style key; the newer sb_secret_… keys must not be sent as a Bearer token
+        h["Authorization"] = f"Bearer {key()}"
     data = None
     if body is not None:
         data = json.dumps(body).encode()
