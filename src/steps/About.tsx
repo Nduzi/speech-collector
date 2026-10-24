@@ -7,7 +7,7 @@ const AGE = [["18-24", "18–24"], ["25-34", "25–34"], ["35-44", "35–44"], [
 const GENDER = [["female", "Female"], ["male", "Male"], ["non_binary", "Non-binary"], ["self_describe", "Another description"], ["prefer_not", "Prefer not to say"]];
 const LANGS = ["English", "Afrikaans", "isiZulu", "isiXhosa", "Sepedi", "Setswana", "Sesotho", "Xitsonga", "siSwati", "Tshivenda", "isiNdebele"];
 const MIC = [["phone_builtin", "Phone (built-in microphone)"], ["laptop_builtin", "Laptop (built-in microphone)"], ["wired_headset", "Wired headset or earphones"], ["bluetooth_headset", "Bluetooth headset or earbuds"], ["usb_mic", "External or USB microphone"], ["other", "Something else"]];
-const ENV = [["quiet_room", "A quiet room"], ["normal_room", "A normal room (some background sound)"], ["noisy", "Somewhere noisy (street, café, open office)"]];
+const ENV = [["quiet_room", "A quiet room"], ["normal_room", "A normal room with some background sound"], ["noisy", "Somewhere noisy, like a street, café or open office"]];
 const PROVINCES = ["Eastern Cape", "Free State", "Gauteng", "KwaZulu-Natal", "Limpopo", "Mpumalanga", "North West", "Northern Cape", "Western Cape"];
 
 const campaign = () => (new URLSearchParams(location.search).get("c") ?? "").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 60);
@@ -35,7 +35,7 @@ export function About({ onBack, onRegistered }: { onBack: () => void; onRegister
       await supabaseApi.registerSpeaker(id, body);
       onRegistered({ v: 1, speakerId: id, name: body.display_name, createdAt: Date.now(), targetRounds: DEFAULT_ROUNDS, round: 1, done: {}, retries: {}, finished: false });
     } catch (ex: any) {
-      setErr(ex?.status === 0 ? "I could not reach the server. Check your internet connection and try again." : "Your details could not be saved just now. Please try again in a moment.");
+      setErr(ex?.status === 0 ? "Couldn’t reach the server. Check your internet connection and try again." : "Your details didn’t save. Please try again in a moment.");
       setBusy(false);
     }
   }
@@ -43,7 +43,7 @@ export function About({ onBack, onRegistered }: { onBack: () => void; onRegister
   return (
     <form className="sheet pad" onSubmit={submit} noValidate>
       <h1>About you</h1>
-      <p className="lead">These details help me check that the system works fairly for different voices. They stay with me and the people helping with this project.</p>
+      <p className="lead">These answers help me check that the system works fairly for different voices. Only me and the people helping with this project see them.</p>
 
       <div className="fields">
         <label className="f"><span>First name or nickname</span>
@@ -52,16 +52,16 @@ export function About({ onBack, onRegistered }: { onBack: () => void; onRegister
 
         <div className="two">
           <label className="f"><span>Age</span>
-            <select value={f.age} onChange={set("age")} required><option value="">Choose…</option>{AGE.map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select></label>
+            <select value={f.age} onChange={set("age")} required><option value="">Choose one</option>{AGE.map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select></label>
           <label className="f"><span>Gender</span>
-            <select value={f.gender} onChange={set("gender")} required><option value="">Choose…</option>{GENDER.map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select></label>
+            <select value={f.gender} onChange={set("gender")} required><option value="">Choose one</option>{GENDER.map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select></label>
         </div>
 
-        <label className="f"><span>Home language (the one you grew up speaking most)</span>
-          <select value={f.lang} onChange={set("lang")} required><option value="">Choose…</option>{LANGS.map((l) => <option key={l}>{l}</option>)}<option value="__other">Another language…</option></select></label>
+        <label className="f"><span>Home language</span>
+          <select value={f.lang} onChange={set("lang")} required><option value="">Choose one</option>{LANGS.map((l) => <option key={l}>{l}</option>)}<option value="__other">Another language…</option></select><span className="hint">The one you grew up speaking most.</span></label>
         {f.lang === "__other" && <label className="f"><span>Which language?</span><input type="text" value={f.langOther} onChange={set("langOther")} maxLength={60} required /></label>}
 
-        <label className="f"><span>Accent or where you grew up <i>(optional)</i></span>
+        <label className="f"><span>Accent, or where you grew up <i>(optional)</i></span>
           <input type="text" value={f.accent} onChange={set("accent")} maxLength={120} placeholder="e.g. Soweto, Durban English, Cape Flats" /></label>
 
         <div className="two">
@@ -70,9 +70,9 @@ export function About({ onBack, onRegistered }: { onBack: () => void; onRegister
         </div>
 
         <label className="f"><span>What are you recording with?</span>
-          <select value={f.mic} onChange={set("mic")} required><option value="">Choose…</option>{MIC.map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select></label>
-        <label className="f"><span>Where are you?</span>
-          <select value={f.env} onChange={set("env")} required><option value="">Choose…</option>{ENV.map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select></label>
+          <select value={f.mic} onChange={set("mic")} required><option value="">Choose one</option>{MIC.map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select></label>
+        <label className="f"><span>Where are you recording?</span>
+          <select value={f.env} onChange={set("env")} required><option value="">Choose one</option>{ENV.map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select></label>
       </div>
 
       {err && <div className="note bad" role="alert">{err}</div>}

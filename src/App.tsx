@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CONTACT_EMAIL, DEFAULT_ROUNDS, MAX_ROUNDS, PROJECT_NAME, PROMPTS } from "./config";
+import { CONTACT_EMAIL, DEFAULT_ROUNDS, MAX_ROUNDS, PROJECT_NAME } from "./config";
 import { supabaseApi } from "./lib/api";
 import { MicHandle } from "./lib/mic";
 import { UploadQueue, QueueStatus, indexedDbStore } from "./lib/queue";
@@ -64,19 +64,19 @@ export function App() {
       </header>
       <main>
         {expired && step === "consent" && (
-          <div className="note warn" role="status">Your earlier session ended (sessions stay open for 3 days). Anything you already recorded was kept. You are welcome to start again below.</div>
+          <div className="note warn" role="status">Your earlier session has closed, because sessions last 3 days. Everything you already recorded was kept. You’re welcome to start again below.</div>
         )}
         {step === "consent" && <Consent onAgree={() => setStep("about")} />}
         {step === "about" && <About onBack={() => setStep("consent")} onRegistered={(s) => { update(s); setStep("mic"); }} />}
         {step === "back" && session && (
           <section className="sheet pad">
             <h1>Welcome back{session.name ? `, ${session.name}` : ""}</h1>
-            <p>You have recorded <b className="num">{doneCount(session)}</b> of <b className="num">{totalTakes(session)}</b> so far. Carry on where you stopped, in the same quiet spot and with the same microphone if you can.</p>
+            <p>You’ve recorded <b className="num">{doneCount(session)}</b> of <b className="num">{totalTakes(session)}</b>. Carry on where you stopped, ideally with the same microphone and in a similarly quiet spot.</p>
             <div className="row">
               <button className="btn primary big" onClick={() => setStep("mic")}>Continue recording</button>
-              <button className="btn ghost" onClick={() => { if (confirm("Start again as a new participant? Your earlier recordings stay with the project.")) startOver(); }}>That is not me</button>
+              <button className="btn ghost" onClick={() => { if (confirm("Start again as a new participant? Your earlier recordings stay with the project.")) startOver(); }}>That’s not me</button>
             </div>
-            {q.waiting > 0 && <p className="muted small">{q.waiting} recording{q.waiting === 1 ? "" : "s"} still to send; they will go as soon as you are online.</p>}
+            {q.waiting > 0 && <p className="muted small">{q.waiting} recording{q.waiting === 1 ? " hasn’t" : "s haven’t"} been sent yet. {q.waiting === 1 ? "It’ll" : "They’ll"} go as soon as you’re back online.</p>}
           </section>
         )}
         {step === "mic" && session && <MicCheck mic={mic} onReady={() => setStep("record")} onStop={stopForNow} />}
@@ -95,12 +95,12 @@ export function App() {
         {step === "break" && session && (
           <section className="sheet pad">
             <h1>Round {session.round} done</h1>
-            <p>{session.targetRounds - session.round} more to go. Have a sip of water if you like, then carry on.</p>
+            <p>{session.targetRounds - session.round} more round{session.targetRounds - session.round === 1 ? "" : "s"} to go. Take a breather if you like.</p>
             <div className="row">
               <button className="btn primary big" onClick={() => { update({ ...session, round: session.round + 1 }); setStep("record"); }}>Start round {session.round + 1}</button>
               <button className="btn" onClick={() => { update({ ...session, round: session.round + 1 }); stopForNow(); }}>Stop for now</button>
             </div>
-            <p className="muted small">If you stop now you can pick this up again from the same link within 3 days.</p>
+            <p className="muted small">Stopping now is fine. Open this link on this device within 3 days to carry on.</p>
           </section>
         )}
         {step === "done" && session && (
@@ -113,8 +113,8 @@ export function App() {
         )}
       </main>
       <footer className="foot">
-        <span>{PROMPTS.length} words · letters A–H and numbers 1–8</span>
-        <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
+        <span>Letters A–H and numbers 1–8</span>
+        <span>Questions? <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></span>
       </footer>
     </div>
   );

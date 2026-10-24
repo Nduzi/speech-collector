@@ -123,7 +123,7 @@ export function Recorder({ session, mic, queue, onSession, onRoundDone, onStop }
     clearTimeout(timers.current.hold);
     timers.current.hold = setTimeout(commitHeld, HOLD_MS);
     retries.current = 0;
-    setNote(q.blocking ? { kind: "warn", text: "Saved, but it was not very clear. That is OK." } : q.flag === "noisy" ? { kind: "warn", text: q.message } : null);
+    setNote(q.blocking ? { kind: "warn", text: "Saved, though it wasn’t very clear. That’s fine." } : q.flag === "noisy" ? { kind: "warn", text: q.message } : null);
     setPhase("saved");
     const idx = cursor;
     timers.current.advance = setTimeout(() => {
@@ -175,7 +175,7 @@ export function Recorder({ session, mic, queue, onSession, onRoundDone, onStop }
     <div className="recorder">
       <section className={`slate ${cls}`} aria-live="polite">
         <div className="slate-bar" aria-hidden />
-        <div className="slate-meta num"><span>Round {session.round} of {session.targetRounds}</span><span>Word {cursor + 1} of {plan.length}</span></div>
+        <div className="slate-meta num"><span>Round {session.round} of {session.targetRounds}</span><span>{cursor + 1} of {plan.length}</span></div>
         <div className="slate-kind">{p.kind === "letter" ? "the letter" : "the number"}</div>
         <div className="glyph" aria-hidden>{p.shown}</div>
         <div className="say">Say just <b>“{p.spoken}”</b></div>
@@ -204,19 +204,19 @@ export function Recorder({ session, mic, queue, onSession, onRoundDone, onStop }
           <div className="row"><button className="btn primary" onClick={() => setTick((t) => t + 1)}><Icon n="play" /> Resume</button><button className="btn" onClick={onStop}>Stop for now</button></div></div>
       )}
       {phase === "lost" && (
-        <div className="note bad" role="alert">The microphone stopped, probably because the screen locked or the headset was unplugged.
+        <div className="note bad" role="alert">The microphone stopped. This can happen when the screen locks or a headset is unplugged.
           <div className="row"><button className="btn primary" onClick={restartMic}><Icon n="mic" /> Turn the microphone back on</button><button className="btn" onClick={onStop}>Stop for now</button></div></div>
       )}
 
       <div className="controls">
-        <button className="btn" onClick={undo} disabled={!heldKey} title="Re-record the word you just did"><Icon n="undo" /> Redo last</button>
+        <button className="btn" onClick={undo} disabled={!heldKey} title="Record the previous one again"><Icon n="undo" /> Redo last</button>
         <button className="btn" onClick={pause} disabled={phase === "paused" || phase === "lost"}><Icon n="pause" /> Pause</button>
         <button className="btn" onClick={manual} disabled={phase === "paused" || phase === "lost" || phase === "processing" || phase === "saved"}>
-          {phase === "hearing" ? <><Icon n="stop" /> Stop</> : <><Icon n="mic" /> Record by hand</>}</button>
+          {phase === "hearing" ? <><Icon n="stop" /> Stop</> : <><Icon n="mic" /> Record manually</>}</button>
         <span className="sp" />
         <button className="btn ghost" onClick={onStop}>Stop for now</button>
       </div>
-      <p className="muted small">It starts by itself when you speak. If it does not pick you up, press “Record by hand”, say the word, then press Stop.</p>
+      <p className="muted small">Recording starts by itself when you speak. If it doesn’t pick you up, press “Record manually”, say it, then press Stop.</p>
     </div>
   );
 }

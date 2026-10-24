@@ -30,7 +30,6 @@ p { margin: 0 0 12px; }
 a { color: var(--pen); text-underline-offset: 3px; }
 code, .num { font-family: var(--mono); font-size: 0.9em; }
 .muted { color: var(--ink-3); } .small { font-size: 13.5px; }
-.eyebrow { font: 600 12px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 8px; }
 .lead { font-size: 17px; color: var(--ink-2); }
 
 /* ---------- frame */
@@ -81,11 +80,11 @@ details.info { border: 1px solid var(--rule); border-radius: 5px; margin: 10px 0
 details.info summary { cursor: pointer; padding: 12px 14px; font-weight: 650; min-height: 44px; }
 details.info ul { margin: 0; padding: 0 14px 12px 34px; display: flex; flex-direction: column; gap: 8px; font-size: 15px; color: var(--ink-2); }
 
-/* ---------- notes */
-.note { border: 1px solid var(--rule); border-left: 4px solid var(--pen); background: var(--pen-soft); border-radius: 4px; padding: 11px 14px; font-size: 15px; margin: 8px 0; }
-.note.warn { border-left-color: var(--amber); background: var(--amber-soft); }
-.note.bad { border-left-color: var(--red); background: var(--red-soft); }
-.note.ok { border-left-color: var(--green); background: var(--green-soft); display: flex; gap: 8px; align-items: center; }
+/* ---------- notes: a tinted panel with an even hairline border (no heavy side stripe) */
+.note { border: 1px solid color-mix(in srgb, var(--pen) 30%, var(--rule)); background: var(--pen-soft); border-radius: 4px; padding: 11px 14px; font-size: 15px; margin: 8px 0; }
+.note.warn { border-color: color-mix(in srgb, var(--amber) 40%, var(--rule)); background: var(--amber-soft); }
+.note.bad { border-color: color-mix(in srgb, var(--red) 40%, var(--rule)); background: var(--red-soft); }
+.note.ok { border-color: color-mix(in srgb, var(--green) 40%, var(--rule)); background: var(--green-soft); display: flex; gap: 8px; align-items: center; }
 .note .row { margin-top: 10px; }
 .status-line { display: flex; flex-direction: column; gap: 4px; margin: 10px 0 14px; font-weight: 600; }
 .status-line .ok { color: var(--green); display: flex; gap: 6px; align-items: center; } .status-line .warn { color: var(--amber); }

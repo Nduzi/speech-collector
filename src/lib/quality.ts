@@ -49,11 +49,11 @@ export function analyse(x: Float32Array, sr: number): Quality {
   const set = (flag: Quality["flag"], message: string, blocking: boolean) => {
     if (out.flag === "ok") Object.assign(out, { flag, message, blocking });
   };
-  if (out.durationMs < 150) set("too_short", "That was too short. Wait for “Listening”, then say it clearly.", true);
-  else if (out.durationMs > 3500) set("too_long", "That went on too long. Say only the one word, then stop.", true);
-  if (out.peakDbfs < -32) set("too_quiet", "That was too quiet. Move a little closer to the microphone and speak up.", true);
-  if (out.clippedFraction > 0.01) set("clipped", "That was too loud and distorted. Move back a little or speak more softly.", true);
-  if (out.snrDb < 12) set("noisy", "There is a lot of background noise. A quieter spot would help, but you can keep going.", false);
+  if (out.durationMs < 150) set("too_short", "That was too short. Wait until it says “Listening”, then say it clearly.", true);
+  else if (out.durationMs > 3500) set("too_long", "That ran too long. Say only the letter or number, then stop.", true);
+  if (out.peakDbfs < -32) set("too_quiet", "That was too quiet. Move a little closer to the microphone, or speak up.", true);
+  if (out.clippedFraction > 0.01) set("clipped", "That was too loud and distorted. Move back a little, or speak more softly.", true);
+  if (out.snrDb < 12) set("noisy", "There’s a lot of background noise. A quieter spot would help, but you can keep going.", false);
   return out;
 }
 

@@ -60,29 +60,29 @@ export function MicCheck({ mic, onReady, onStop }: { mic: MicHandle; onReady: ()
     return () => clearTimeout(t);
   }, [phase, heard]);
 
-  const verdict = floor == null ? null : floor < -58 ? { cls: "ok", t: "Nice and quiet." } : floor < -46 ? { cls: "ok", t: "A little background sound. That is fine." } : { cls: "warn", t: "It is quite noisy here. A quieter spot would give better recordings." };
+  const verdict = floor == null ? null : floor < -58 ? { cls: "ok", t: "Nice and quiet." } : floor < -46 ? { cls: "ok", t: "A little background sound, which is fine." } : { cls: "warn", t: "Quite noisy here. A quieter spot gives better recordings." };
 
   return (
     <section className="sheet pad">
       <h1>Check your microphone</h1>
       {phase !== "live" && (
         <>
-          <p className="lead">Your browser will ask to use the microphone. Choose <b>Allow</b>. The recording is only made while you are on the recording screen and goes to the project, nowhere else.</p>
+          <p className="lead">Choose <b>Allow</b> when your browser asks to use the microphone. Nothing is recorded until the next screen, and recordings go only to this project.</p>
           <ul className="tips">
-            <li>Find a quiet spot and hold the phone or sit as you normally would.</li>
+            <li>Find a quiet spot.</li>
             <li>Use the <b>same microphone</b> for the whole session.</li>
-            <li>Say each word naturally, at normal speed, as if telling someone a code.</li>
+            <li>Speak at a normal pace, as if reading out a code.</li>
           </ul>
           {err && <div className="note bad" role="alert">{err.message}</div>}
           <div className="row">
-            <button className="btn primary big" onClick={() => open(deviceId || undefined)} disabled={phase === "opening"}><Icon n="mic" /> {phase === "opening" ? "Waiting for permission…" : err ? "Try again" : "Allow microphone"}</button>
+            <button className="btn primary big" onClick={() => open(deviceId || undefined)} disabled={phase === "opening"}><Icon n="mic" /> {phase === "opening" ? "Waiting for permission…" : err ? "Try again" : "Use my microphone"}</button>
             <button className="btn ghost" onClick={onStop}>Not now</button>
           </div>
         </>
       )}
       {phase === "live" && (
         <>
-          <p className="lead">Say <b>“A”</b> out loud, once or twice.</p>
+          <p className="lead">Say <b>“A”</b> out loud.</p>
           <LevelMeter levelRef={level} floorRef={floorRef} />
           <div className="status-line" aria-live="polite">
             {heard ? <span className="ok"><Icon n="check" /> I can hear you.</span> : <span className="muted">Waiting for your voice…</span>}
@@ -91,16 +91,16 @@ export function MicCheck({ mic, onReady, onStop }: { mic: MicHandle; onReady: ()
           {devices.length > 1 && (
             <label className="f"><span>Microphone</span>
               <select value={deviceId} onChange={(e) => { setDeviceId(e.target.value); void open(e.target.value || undefined); }}>
-                <option value="">Default</option>
+                <option value="">Default microphone</option>
                 {devices.map((d, i) => <option key={d.deviceId || i} value={d.deviceId}>{d.label || `Microphone ${i + 1}`}</option>)}
               </select></label>
           )}
-          <p className="muted small">Using: {mic.label || "default microphone"} · {mic.sampleRate} Hz</p>
+          <p className="muted small">Using {mic.label || "the default microphone"}.</p>
           <div className="row">
             <button className="btn primary big" disabled={!heard && !stuck} onClick={onReady}>{heard ? "Start recording" : stuck ? "Continue anyway" : "Start recording"}</button>
             <button className="btn ghost" onClick={onStop}>Stop for now</button>
           </div>
-          {!heard && <p className="muted small">If the bar does not move when you speak, pick another microphone above, or check that nothing else is using it.</p>}
+          {!heard && <p className="muted small">Bar not moving? Close any other app that uses the microphone, or pick a different microphone if the list shows more than one.</p>}
         </>
       )}
     </section>
