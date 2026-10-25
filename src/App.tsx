@@ -84,7 +84,7 @@ export function App() {
         {expired && step === "consent" && (
           <div className="note warn" role="status">Your earlier session has closed, because sessions last 3 days. Everything you already recorded was kept. You’re welcome to start again below.</div>
         )}
-        {step === "consent" && <Consent onAgree={() => setStep("about")} />}
+        {step === "consent" && <Consent onAgree={() => setStep("about")} onResume={(s) => { update(s); setExpired(false); setStep(s.finished ? "done" : "back"); }} />}
         {step === "about" && <About onBack={() => setStep("consent")} onRegistered={(s) => { update(s); setStep("mic"); }} />}
         {step === "back" && session && (
           <section className="sheet pad">

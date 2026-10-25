@@ -1,4 +1,4 @@
-import { PROMPTS } from "../config";
+import { DEFAULT_ROUNDS, MAX_ROUNDS, PROMPTS } from "../config";
 import { Session, takeKey } from "./session";
 
 /** A link the project owner sends to one participant so they can finish what is still missing, from any device:
@@ -7,7 +7,7 @@ import { Session, takeKey } from "./session";
  *  The link only works while the owner has re-opened the participant's upload window. */
 export interface ResumeLink { speakerId: string; name: string; rounds: number; missing: Set<string> }
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 export function encodeMissing(missing: Array<[round: number, promptIndex: number]>): string {
   let m = 0n;
@@ -58,4 +58,24 @@ export function sessionFromLink(l: ResumeLink, now = Date.now()): Session {
     }
   }
   return { v: 1, speakerId: l.speakerId, name: l.name, createdAt: now, targetRounds: l.rounds, round: first || l.rounds, done, retries: {}, finished: first === 0 };
+}
+
+/** The session for someone who typed in their participant ID: what the database says they recorded counts as done. */
+export function sessionFromProgress(id: string, p: { name: string; recorded: Array<[string, number]> }, now = Date.now()): Session {
+  const known = new Set(PROMPTS.map((x) => x.label));
+  const done: Record<string, 1> = {};
+  let rounds = DEFAULT_ROUNDS;
+  for (const [label, round] of p.recorded) {
+    if (!known.has(label) || !Number.isInteger(round) || round < 1 || round > MAX_ROUNDS) continue;
+    done[takeKey(id, label, round)] = 1;
+    rounds = Math.max(rounds, round);
+  }
+  const s: Session = { v: 1, speakerId: id, name: p.name.slice(0, 60), createdAt: now, targetRounds: Math.min(MAX_ROUNDS, rounds), round: 1, done, retries: {}, finished: false };
+  const open = firstMissingRound(s);
+  return open ? { ...s, round: open } : { ...s, round: s.targetRounds, finished: true };
+}
+
+function firstMissingRound(s: Session): number {
+  for (let r = 1; r <= s.targetRounds; r++) if (PROMPTS.some((x) => !s.done[takeKey(s.speakerId, x.label, r)])) return r;
+  return 0;
 }

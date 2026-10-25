@@ -338,3 +338,52 @@ describe("resume links", () => {
     expect(parseResumeLink(link([[1, 0]], "&n=" + "x".repeat(200)))?.name.length).toBeLessThanOrEqual(60);
   });
 });
+
+// ---------------------------------------------------------------------------------------------- carrying on with a participant ID
+import { sessionFromProgress } from "./resume";
+import { fetchProgress } from "./api";
+
+describe("carry on with a participant ID", () => {
+  const ID = "2240e01a-94db-4488-a10e-689b0cc1f48e";
+  const rec = (labels: string[], rounds: number[]) => labels.flatMap((l) => rounds.map((r) => [l, r] as [string, number]));
+  it("marks what the database holds as done and asks only for the rest", () => {
+    const s = sessionFromProgress(ID, { name: "Nay", recorded: rec(PROMPTS.filter((p) => p.kind !== "piece").map((p) => p.label), [1, 2, 3, 4, 5]) });
+    expect(s.name).toBe("Nay");
+    expect(s.targetRounds).toBe(5);
+    expect(s.finished).toBe(false);
+    expect(s.round).toBe(1);
+    expect(Object.keys(s.done).length).toBe(80);
+    expect(missingPieces(s)).toBe(30);
+  });
+  it("someone with everything recorded goes straight to the thank-you page", () => {
+    const s = sessionFromProgress(ID, { name: "Ada", recorded: rec(PROMPTS.map((p) => p.label), [1, 2, 3, 4, 5]) });
+    expect(s.finished).toBe(true);
+    expect(missingPieces(s)).toBe(0);
+  });
+  it("keeps going past five rounds if the person recorded more, and ignores words it does not know", () => {
+    const s = sessionFromProgress(ID, { name: "Z", recorded: [...rec(PROMPTS.map((p) => p.label), [1, 2, 3, 4, 5, 6, 7]), ["Banana", 1], ["A", 99], ["A", 0]] });
+    expect(s.targetRounds).toBe(7);
+    expect(s.finished).toBe(true);
+    expect(Object.keys(s.done).length).toBe(22 * 7);
+  });
+  it("starts at the first round that is missing something", () => {
+    const rounds12 = rec(PROMPTS.map((p) => p.label), [1, 2]);
+    const s = sessionFromProgress(ID, { name: "Z", recorded: [...rounds12, ...rec(PROMPTS.map((p) => p.label).filter((l) => l !== "Pawn"), [3])] });
+    expect(s.round).toBe(3);
+  });
+  it("looks the ID up through the database function and passes the answer through", async () => {
+    const real = globalThis.fetch;
+    let seen: { url: string; body: string } | null = null;
+    globalThis.fetch = (async (url: string, init: RequestInit) => { seen = { url, body: String(init.body) }; return new Response(JSON.stringify({ name: "Nay", window_open: true, recorded: [["A", 1]] }), { status: 200 }); }) as typeof fetch;
+    try {
+      const p = await fetchProgress(ID);
+      expect(p).toEqual({ name: "Nay", window_open: true, recorded: [["A", 1]] });
+      expect(seen!.url).toMatch(/\/rest\/v1\/rpc\/my_progress$/);
+      expect(JSON.parse(seen!.body)).toEqual({ p: ID });
+      globalThis.fetch = (async () => new Response("null", { status: 200 })) as typeof fetch;
+      expect(await fetchProgress(ID)).toBeNull();
+      globalThis.fetch = (async () => new Response("oops", { status: 503 })) as typeof fetch;
+      await expect(fetchProgress(ID)).rejects.toMatchObject({ retryable: true });
+    } finally { globalThis.fetch = real; }
+  });
+});

@@ -1,12 +1,50 @@
 import { useState } from "react";
 import { CONTACT_EMAIL, DEFAULT_ROUNDS, ETHICS_REF, INSTITUTION, PROJECT_TITLE, PROMPTS, RESEARCHER } from "../config";
+import { fetchProgress } from "../lib/api";
+import { UUID, sessionFromProgress } from "../lib/resume";
+import { Session } from "../lib/session";
 
-export function Consent({ onAgree }: { onAgree: () => void }) {
+/** For someone who already recorded but is on a new device or browser: carry on with the ID from their thank-you page. */
+function ContinueWithId({ onResume }: { onResume: (s: Session) => void }) {
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  async function go() {
+    const id = value.trim().toLowerCase();
+    if (!UUID.test(id)) { setErr("That doesn’t look like a participant ID. It has 36 characters, like 2240e01a-94db-4488-a10e-689b0cc1f48e."); return; }
+    setBusy(true); setErr("");
+    try {
+      const p = await fetchProgress(id);
+      if (!p) setErr("I couldn’t find that ID. Check it and try again.");
+      else if ("withdrawn" in p) setErr("That participant withdrew, so there is nothing to carry on with.");
+      else if (!p.window_open) setErr(`Your 3 days to record have ended. Email ${CONTACT_EMAIL} and I’ll send you a new link.`);
+      else onResume(sessionFromProgress(id, p));
+    } catch {
+      setErr("Couldn’t reach the server. Check your internet connection and try again.");
+    } finally { setBusy(false); }
+  }
+  if (!open) return <p className="small">Already recorded some? <button type="button" className="link" onClick={() => setOpen(true)}>Carry on where you left off</button></p>;
+  return (
+    <div className="note">
+      <div style={{ flex: 1 }}>
+        <label className="f"><span>Your participant ID</span>
+          <input type="text" value={value} onChange={(e) => { setValue(e.target.value); setErr(""); }} placeholder="paste the ID from your thank-you page" autoComplete="off" spellCheck={false} onKeyDown={(e) => { if (e.key === "Enter") void go(); }} />
+          <span className="hint">The 36-character code shown on your last screen. Not saved it? Message me and I’ll send you a link.</span></label>
+        {err && <p role="alert" style={{ color: "var(--red)", margin: "8px 0 0" }}>{err}</p>}
+        <div className="row"><button type="button" className="btn primary" disabled={busy || !value.trim()} onClick={go}>{busy ? "Looking…" : "Carry on"}</button><button type="button" className="btn ghost" onClick={() => setOpen(false)}>Cancel</button></div>
+      </div>
+    </div>
+  );
+}
+
+export function Consent({ onAgree, onResume }: { onAgree: () => void; onResume: (s: Session) => void }) {
   const [adult, setAdult] = useState(false);
   const [agree, setAgree] = useState(false);
   const minutes = Math.round((DEFAULT_ROUNDS * PROMPTS.length * 4.5) / 60);
   return (
     <section className="sheet pad">
+      <ContinueWithId onResume={onResume} />
       <h1>Help a chess board learn to listen</h1>
       <p className="lead">
         Hi there! I’m <b>{RESEARCHER}</b>. For my final-year project at the <b>{INSTITUTION}</b> I’m building <b>{PROJECT_TITLE}</b>: you say a move out loud, like “knight to F three”, and the board moves the piece.

@@ -31,7 +31,7 @@ export function Done({ session, queue, status, canAddMore, onMore, onForget, mis
       )}
 
       <h2>Your participant ID</h2>
-      <p className="muted small">Keep this ID. To have your recordings removed, email it to <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> and I’ll delete everything linked to it.</p>
+      <p className="muted small">Keep this ID. To carry on from another phone or browser, choose “Carry on where you left off” on the first page and paste it. To have your recordings removed, email it to <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> and I’ll delete everything linked to it.</p>
       <div className="idbox"><code>{session.speakerId}</code><button className="btn small" onClick={copy}><Icon n="copy" /> {copied ? "Copied" : "Copy"}</button></div>
       <p className="muted small">Short version: <b className="num">{shortId(session.speakerId)}</b></p>
 

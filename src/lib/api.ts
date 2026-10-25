@@ -57,6 +57,15 @@ async function fail(r: Response, what: string): Promise<never> {
   throw new ApiError(r.status, `${what} failed (${r.status}) ${detail}`.trim(), r.status >= 500 || r.status === 429 || r.status === 408);
 }
 
+/** What a participant has already recorded, looked up by their ID (see supabase/migrations/…my_progress_lookup.sql). */
+export type Progress = { withdrawn: true } | { name: string; window_open: boolean; recorded: Array<[string, number]> } | null;
+
+export async function fetchProgress(id: string): Promise<Progress> {
+  const r = await call(`${SUPABASE_URL}/rest/v1/rpc/my_progress`, { method: "POST", headers: headers({ "Content-Type": "application/json" }), body: JSON.stringify({ p: id }) });
+  if (!r.ok) await fail(r, "Looking up your ID");
+  return (await r.json()) as Progress;
+}
+
 export interface Api {
   registerSpeaker(id: string, s: SpeakerInput): Promise<void>;
   uploadWav(path: string, wav: Blob): Promise<void>;

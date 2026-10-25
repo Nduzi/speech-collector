@@ -36,6 +36,9 @@ The link carries that person's participant ID and exactly which recordings are s
 shows only what is missing, and never overwrites progress already saved on that device. Making a link also sets `speakers.extended_until` (service key only, see
 `supabase/migrations/20261025_speaker_window_extension.sql`) so the 3-day upload window is open again for 3 more days. The public site cannot set that column.
 
+Anyone can also carry on from a new device or browser on their own: the first page has **Carry on where you left off**, which takes the participant ID from their thank-you page (it is also in the Trainer's participant panel).
+The site asks the database function `public.my_progress(id)` what that one ID has recorded (`supabase/migrations/20261025_my_progress_lookup.sql`); it answers only for an exact, random 36-character ID and cannot list or search anyone.
+
 ## Collect data
 
 Share the link. Add `?c=<tag>` to tell groups apart (e.g. `https://<user>.github.io/speech-collector/?c=cs-class`); the tag is stored with each participant.
