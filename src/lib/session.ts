@@ -65,6 +65,19 @@ export function roundOrder(speakerId: string, round: number): Prompt[] {
   return a;
 }
 
+/** First round that still lacks a chess piece (used to carry on after the pieces were added). */
+export function firstOpenRound(s: Session): number {
+  for (let r = 1; r <= s.targetRounds; r++) if (PROMPTS.some((p) => p.kind === "piece" && !s.done[takeKey(s.speakerId, p.label, r)])) return r;
+  return s.targetRounds;
+}
+
+/** How many chess-piece recordings this person still lacks across their rounds (people who started before the pieces were added). */
+export function missingPieces(s: Session): number {
+  let n = 0;
+  for (let r = 1; r <= s.targetRounds; r++) for (const p of PROMPTS) if (p.kind === "piece" && !s.done[takeKey(s.speakerId, p.label, r)]) n++;
+  return n;
+}
+
 export const totalTakes = (s: Session) => s.targetRounds * PROMPTS.length;
 export const doneCount = (s: Session) => Object.keys(s.done).length;
 export const shortId = (id: string) => id.slice(0, 8).toUpperCase();

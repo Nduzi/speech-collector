@@ -15,7 +15,7 @@ export interface Context {
 /** What to do with a finished take. A take with no vowel in it is NEVER accepted, whatever else is true:
  *  that is what a screen tap, a bump or a double-tap on "Record manually" produces, and it must not
  *  count as a recording or move the person on. Other problems (quiet, noisy, clipped) are kept after
- *  a few retries, because there is still a spoken letter or number in them. */
+ *  a few retries, because there is still a spoken prompt in them. */
 export function decideTake(q: Quality, c: Context): Decision {
   if (q.speechless) {
     if (c.uiDuringCapture && c.reason !== "manual") return { action: "ignore" };

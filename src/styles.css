@@ -103,6 +103,7 @@ details.info ul { margin: 0; padding: 0 14px 12px 34px; display: flex; flex-dire
 .slate-kind { margin-top: 10px; color: var(--chalk-2); font: 600 12px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; }
 .glyph { font-size: clamp(110px, 34vw, 168px); line-height: 1.05; font-weight: 700; letter-spacing: -0.04em; margin: 4px 0 0; animation: chalk 0.35s var(--ease); }
 @keyframes chalk { from { opacity: 0; transform: translateY(8px) scale(0.97); } to { opacity: 1; transform: none; } }
+.glyph.word { font-size: clamp(54px, 17vw, 92px); letter-spacing: -0.03em; line-height: 1.25; padding: 0.12em 0 0.1em; }
 .say { font-size: 20px; color: var(--chalk); } .say b { font-weight: 650; }
 .slate-status { margin: 14px 0 6px; min-height: 28px; font-weight: 650; font-size: 17px; display: inline-flex; gap: 8px; align-items: center; color: var(--chalk-2); }
 .slate-status.go { color: var(--go); } .slate-status.hear { color: var(--hear); } .slate-status.saved { color: var(--go); } .slate-status.retry { color: var(--warn); }
@@ -112,13 +113,14 @@ details.info ul { margin: 0; padding: 0 14px 12px 34px; display: flex; flex-dire
 .slate .meter-floor { background: var(--chalk-2); }
 @media (prefers-reduced-motion: reduce) { .glyph { animation: none; } * { transition: none !important; } }
 
-.grid16 { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+.grid16 { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 6px; }
 .grid16 li { position: relative; border: 1px solid var(--rule); background: var(--sheet); border-radius: 4px; height: 38px; display: grid; place-items: center; font: 650 15px var(--mono); color: var(--ink-3); }
 .grid16 li.now { border-color: var(--pen); color: var(--ink); box-shadow: inset 0 -3px 0 var(--pen); }
 .grid16 li.done { color: var(--pen); background: var(--pen-soft); border-color: transparent; }
 .grid16 li .pen { position: absolute; inset: 1px; width: calc(100% - 2px); height: calc(100% - 2px); fill: none; stroke: var(--pen); stroke-width: 1.6; stroke-linecap: round; opacity: 0.8; }
 .grid16 li span { position: relative; }
-@media (max-width: 420px) { .grid16 { grid-template-columns: repeat(4, 1fr); } .grid16 li { height: 42px; } }
+@media (max-width: 420px) { .grid16 li { height: 42px; } }
+.grid16 li.piece { font-size: 12.5px; }
 
 .controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .controls .btn { flex: 0 1 auto; }

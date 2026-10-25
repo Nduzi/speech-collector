@@ -248,3 +248,93 @@ describe("speech check: taps, bumps and clicks are never accepted as recordings"
     expect(decideTake(quiet, { tries: 3, maxRetries: 3, uiDuringCapture: false, reason: "endpoint" }).action).toBe("accept"); // still a spoken letter, so it is kept (flagged)
   });
 });
+
+// ---------------------------------------------------------------------------------------------- the chess piece prompts
+import { PROMPTS } from "../config";
+import { Session, firstOpenRound, missingPieces, roundOrder, takeKey } from "./session";
+
+describe("chess piece prompts", () => {
+  const base = (done: Record<string, 1>): Session => ({ v: 1, speakerId: "aaaaaaaa-1111-4111-8111-000000000001", name: "A", createdAt: 0, targetRounds: 5, round: 5, done, retries: {}, finished: true });
+  it("are part of every round, with database-safe labels", () => {
+    expect(PROMPTS.filter((p) => p.kind === "piece").map((p) => p.label)).toEqual(["King", "Queen", "Rook", "Bishop", "Knight", "Pawn"]);
+    expect(PROMPTS.length).toBe(22);
+    expect(new Set(PROMPTS.map((p) => p.label)).size).toBe(22);
+    for (const p of PROMPTS) expect(p.label).toMatch(/^[A-Za-z0-9]{1,20}$/); // the database and storage rules
+    for (const r of [1, 2, 3]) expect(roundOrder("aaaaaaaa-1111-4111-8111-000000000001", r).map((p) => p.label).sort()).toEqual(PROMPTS.map((p) => p.label).sort());
+  });
+  it("people who finished the original 16 are asked only for the pieces, starting at the first round that lacks them", () => {
+    const old: Record<string, 1> = {};
+    for (let r = 1; r <= 5; r++) for (const p of PROMPTS) if (p.kind !== "piece") old[takeKey("aaaaaaaa-1111-4111-8111-000000000001", p.label, r)] = 1;
+    const s = base(old);
+    expect(missingPieces(s)).toBe(30);
+    expect(firstOpenRound(s)).toBe(1);
+    const partway = { ...old };
+    for (const p of PROMPTS) if (p.kind === "piece") for (const r of [1, 2]) partway[takeKey(s.speakerId, p.label, r)] = 1;
+    expect(missingPieces(base(partway))).toBe(18);
+    expect(firstOpenRound(base(partway))).toBe(3);
+  });
+  it("someone who has everything is not asked again", () => {
+    const all: Record<string, 1> = {};
+    for (let r = 1; r <= 5; r++) for (const p of PROMPTS) all[takeKey("aaaaaaaa-1111-4111-8111-000000000001", p.label, r)] = 1;
+    expect(missingPieces(base(all))).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------- "finish what is missing" links
+import { decodeMissing, encodeMissing, parseResumeLink, sessionFromLink } from "./resume";
+
+describe("resume links", () => {
+  const ID = "2240e01a-94db-4488-a10e-689b0cc1f48e";
+  const idx = (label: string) => PROMPTS.findIndex((p) => p.label === label);
+  const pieces = PROMPTS.map((p, i) => [p, i] as const).filter(([p]) => p.kind === "piece").map(([, i]) => i);
+  const link = (missing: Array<[number, number]>, extra = "") => `?add=${ID}&n=Nay&r=5&p=${PROMPTS.length}&m=${encodeMissing(missing)}${extra}`;
+
+  it("round-trips any set of missing recordings", () => {
+    const m: Array<[number, number]> = [[1, 0], [1, 21], [3, 7], [5, 21], [5, 16]];
+    expect(decodeMissing(encodeMissing(m)).sort()).toEqual([...m].sort());
+    expect(decodeMissing(encodeMissing([]))).toEqual([]);
+  });
+  it("the ask for every chess piece in 5 rounds fits in a short link", () => {
+    const all: Array<[number, number]> = [];
+    for (let r = 1; r <= 5; r++) for (const i of pieces) all.push([r, i]);
+    expect(encodeMissing(all).length).toBeLessThanOrEqual(24);
+  });
+  it("builds a session where only the missing recordings are still to do", () => {
+    const missing: Array<[number, number]> = [];
+    for (let r = 1; r <= 5; r++) for (const i of pieces) missing.push([r, i]);
+    const l = parseResumeLink(link(missing))!;
+    expect(l).not.toBeNull();
+    const s = sessionFromLink(l, 1000);
+    expect(s.speakerId).toBe(ID);
+    expect(s.name).toBe("Nay");
+    expect(s.finished).toBe(false);
+    expect(s.round).toBe(1);
+    expect(Object.keys(s.done).length).toBe(5 * 16);
+    expect(missingPieces(s)).toBe(30);
+    expect(s.done[takeKey(ID, "A", 1)]).toBe(1);
+    expect(s.done[takeKey(ID, "King", 1)]).toBeUndefined();
+    expect(s.createdAt).toBe(1000);
+  });
+  it("starts at the first round that has something missing, and a link with nothing missing means finished", () => {
+    const l = parseResumeLink(link([[3, idx("Pawn")], [4, idx("A")]]))!;
+    expect(sessionFromLink(l).round).toBe(3);
+    expect(sessionFromLink(l).finished).toBe(false);
+    expect(sessionFromLink(parseResumeLink(link([]))!).finished).toBe(true);
+  });
+  it("asks for individual missing letters, not only chess pieces", () => {
+    const s = sessionFromLink(parseResumeLink(link([[2, idx("E")], [2, idx("Five")]]))!);
+    expect(s.done[takeKey(ID, "E", 2)]).toBeUndefined();
+    expect(s.done[takeKey(ID, "E", 1)]).toBe(1);
+    expect(Object.keys(s.done).length).toBe(5 * 22 - 2);
+  });
+  it("rejects malformed or stale links instead of guessing", () => {
+    expect(parseResumeLink("")).toBeNull();
+    expect(parseResumeLink(link([[1, 0]]).replace(ID, "not-a-uuid"))).toBeNull();
+    expect(parseResumeLink(link([[1, 0]]).replace("&r=5", "&r=11"))).toBeNull();
+    expect(parseResumeLink(link([[1, 0]]).replace("&r=5", "&r=0"))).toBeNull();
+    expect(parseResumeLink(link([[1, 0]]).replace(`&p=${PROMPTS.length}`, "&p=16"))).toBeNull(); // made for a different list of words
+    expect(parseResumeLink(link([[1, 0]]).replace(/&m=[^&]*/, "&m=zz%20zz"))).toBeNull();
+    expect(parseResumeLink(link([[6, 0]]))).toBeNull(); // a round beyond the stated rounds
+    expect(parseResumeLink(link([[1, 0]], "&n=" + "x".repeat(200)))?.name.length).toBeLessThanOrEqual(60);
+  });
+});

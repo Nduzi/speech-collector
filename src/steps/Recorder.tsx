@@ -42,7 +42,7 @@ export function Recorder({ session, mic, queue, onSession, onRoundDone, onStop }
   const level = useRef(-90);
   const floor = useRef(-90);
   const retries = useRef(0);
-  const speechFails = useRef(0); // consecutive takes with no spoken letter or number in them
+  const speechFails = useRef(0); // consecutive takes with nothing spoken in them
   const [canSkip, setCanSkip] = useState(false);
   const lastUi = useRef(0); // when the screen or keyboard was last touched
   const capStart = useRef(0); // when the current capture began
@@ -164,7 +164,7 @@ export function Recorder({ session, mic, queue, onSession, onRoundDone, onStop }
     else setCursor(h.idx);
   }
 
-  /** Leave this letter or number for later. Offered only after three takes with nothing spoken in them (a microphone problem). */
+  /** Leave this one for later. Offered only after three takes with nothing spoken in them (a microphone problem). */
   function skip() {
     clearTimeout(timers.current.retry);
     const idx = cursor;
@@ -203,8 +203,8 @@ export function Recorder({ session, mic, queue, onSession, onRoundDone, onStop }
       <section className={`slate ${cls}`} aria-live="polite">
         <div className="slate-bar" aria-hidden />
         <div className="slate-meta num"><span>Round {session.round} of {session.targetRounds}</span><span>{cursor + 1} of {plan.length}</span></div>
-        <div className="slate-kind">{p.kind === "letter" ? "the letter" : "the number"}</div>
-        <div className="glyph" aria-hidden>{p.shown}</div>
+        <div className="slate-kind">{p.kind === "letter" ? "the letter" : p.kind === "number" ? "the number" : "the chess piece"}</div>
+        <div className={`glyph ${p.kind === "piece" ? "word" : ""}`} aria-hidden>{p.shown}</div>
         <div className="say">Say just <b>“{p.spoken}”</b></div>
         <div className={`slate-status ${cls}`}>
           {phase === "saved" && <Icon n="check" />}{phase === "retry" && <Icon n="warn" />}
@@ -219,7 +219,7 @@ export function Recorder({ session, mic, queue, onSession, onRoundDone, onStop }
           const k = keyOf(i);
           const done = !!session.done[k] || heldKey === k;
           return (
-            <li key={q.label} className={`${done ? "done" : ""} ${i === cursor ? "now" : ""}`} aria-current={i === cursor ? "step" : undefined}>
+            <li key={q.label} className={`${done ? "done" : ""} ${i === cursor ? "now" : ""} ${q.kind === "piece" ? "piece" : ""}`} aria-current={i === cursor ? "step" : undefined}>
               {done && <PenCircle />}<span>{q.shown}</span>
             </li>
           );

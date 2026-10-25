@@ -9,7 +9,7 @@ export interface Quality {
   voicedMs: number; // total time with a vowel-like (periodic) sound clearly above the background
   longestVoicedMs: number; // the longest unbroken stretch of it
   sustainedMs: number; // how long the best stretch holds within 4 dB of its own peak (speech holds its level; a thump decays)
-  speechless: boolean; // no vowel at all: a tap, bump, click, breath or silence, never a spoken letter or number
+  speechless: boolean; // no vowel at all: a tap, bump, click, breath or silence, never a spoken prompt
   flag: "ok" | "too_quiet" | "clipped" | "too_short" | "too_long" | "noisy" | "no_speech";
   message: string; // shown to the speaker when it is not "ok"
   blocking: boolean; // a take that cannot be useful: ask for a retry first
@@ -17,8 +17,8 @@ export interface Quality {
 
 const db = (x: number) => 10 * Math.log10(x + 1e-12);
 
-export const NO_SPEECH_MESSAGE = "That didn’t sound like a letter or number. It may have been a tap or a bump. Wait until it says “Listening”, then say it out loud.";
-// Every one of the 16 prompts (A–H, one–eight) contains a voiced vowel. Chosen against 166 real recordings from three people (shortest voiced total 160 ms for clean takes)
+export const NO_SPEECH_MESSAGE = "That didn’t sound like someone speaking. It may have been a tap or a bump. Wait until it says “Listening”, then say it out loud.";
+// Every prompt (the letters A–H, the numbers one to eight, the six chess pieces) contains a voiced vowel. Chosen against 166 real recordings from three people (shortest voiced total 160 ms for clean takes)
 // and against synthetic knocks, whose ring-down never held its level for 50 ms.
 const MIN_VOICED_MS = 100;
 const MIN_RUN_MS = 50;
@@ -117,7 +117,7 @@ export function analyse(x: Float32Array, sr: number): Quality {
   };
   if (out.speechless) set("no_speech", NO_SPEECH_MESSAGE, true); // first, so nothing else can wave a speechless take through
   if (out.durationMs < 150) set("too_short", "That was too short. Wait until it says “Listening”, then say it clearly.", true);
-  else if (out.durationMs > 3500) set("too_long", "That ran too long. Say only the letter or number, then stop.", true);
+  else if (out.durationMs > 3500) set("too_long", "That ran too long. Say only the one word, then stop.", true);
   if (out.peakDbfs < -32) set("too_quiet", "That was too quiet. Move a little closer to the microphone, or speak up.", true);
   if (out.clippedFraction > 0.01) set("clipped", "That was too loud and distorted. Move back a little, or speak more softly.", true);
   if (out.snrDb < 12) set("noisy", "There’s a lot of background noise. A quieter spot would help, but you can keep going.", false);

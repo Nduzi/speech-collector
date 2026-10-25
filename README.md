@@ -1,11 +1,11 @@
 # Speech collector
 
-The data-collection site for **Sibulele Makhonco's final-year project** (a speech-controlled automated chess board, University of Pretoria). It asks people to say the letters **A–H** and the numbers **1–8** into their microphone and sends the
+The data-collection site for **Sibulele Makhonco's final-year project** (a speech-controlled automated chess board, University of Pretoria). It asks people to say the letters **A–H**, the numbers **1–8** and the six chess piece names (**king, queen, rook, bishop, knight, pawn**) into their microphone and sends the
 recordings to the project. It feeds the Speech Trainer (a separate, local project) with many different speakers.
 
 * **Site:** static React app, hosted on GitHub Pages. Nothing runs on a server of ours.
 * **Storage:** Supabase (project `speech-collector`, Ireland). Recordings go to a *private* bucket; metadata to two tables.
-* **Per person:** consent → about you → mic check → 5 rounds × 16 words (≈ 6 min; optional up to 10 rounds) → thank-you page with a participant ID.
+* **Per person:** consent → about you → mic check → 5 rounds × 22 words (≈ 8 min; optional up to 10 rounds) → thank-you page with a participant ID.
 
 ## How a recording is made
 
@@ -28,6 +28,13 @@ No surname, e-mail, phone number or location. See `supabase/migrations/` for the
 recordings for that speaker within 3 days, ≤ 400 per speaker, ≤ 1 MiB WAV files). It cannot read, update or delete anything. All reading and deleting is done by
 you, with the secret key, through `scripts/collector_admin.py`. The secret key must never be put in this repository or the site.
 Someone determined could still script junk uploads within those limits; if that ever happens, add an invite code or CAPTCHA, or rotate the publishable key.
+
+## Asking one person to add what is missing
+
+When words are added (the chess pieces were), or a few takes were set aside, the Trainer's **Data → Participants** tab has a **Copy link** button for each person who has not finished.
+The link carries that person's participant ID and exactly which recordings are still needed (`?add=<id>&n=<name>&r=<rounds>&p=<words>&m=<missing, base 36>`; see `src/lib/resume.ts`), so it works on any device,
+shows only what is missing, and never overwrites progress already saved on that device. Making a link also sets `speakers.extended_until` (service key only, see
+`supabase/migrations/20261025_speaker_window_extension.sql`) so the 3-day upload window is open again for 3 more days. The public site cannot set that column.
 
 ## Collect data
 

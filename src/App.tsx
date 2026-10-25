@@ -3,7 +3,8 @@ import { CONTACT_EMAIL, DEFAULT_ROUNDS, MAX_ROUNDS, PROJECT_NAME } from "./confi
 import { supabaseApi } from "./lib/api";
 import { MicHandle } from "./lib/mic";
 import { UploadQueue, QueueStatus, indexedDbStore } from "./lib/queue";
-import { Session, doneCount, isExpired, loadSession, saveSession, totalTakes } from "./lib/session";
+import { Session, doneCount, firstOpenRound, isExpired, missingPieces, loadSession, saveSession, totalTakes } from "./lib/session";
+import { parseResumeLink, sessionFromLink } from "./lib/resume";
 import { Logo } from "./icons";
 import { Consent } from "./steps/Consent";
 import { About } from "./steps/About";
@@ -22,12 +23,27 @@ export function useQueueStatus(): QueueStatus {
   return s;
 }
 
+/** Open the saved session, or one built from a "finish what is missing" link the owner sent (see lib/resume.ts).
+ *  Idempotent: React may call it twice, and a link never overwrites progress already saved on this device. */
+function startingSession(): { session: Session | null; fromLink: boolean } {
+  const link = parseResumeLink(location.search);
+  const saved = loadSession();
+  if (link) {
+    if (saved && saved.speakerId === link.speakerId && !isExpired(saved)) return { session: saved, fromLink: true };
+    const s = sessionFromLink(link);
+    saveSession(s);
+    return { session: s, fromLink: true };
+  }
+  return { session: saved, fromLink: false };
+}
+
 export function App() {
-  const [session, setSession] = useState<Session | null>(() => loadSession());
-  const [expired, setExpired] = useState(() => { const s = loadSession(); return !!s && isExpired(s); });
+  const [start] = useState(startingSession);
+  const [session, setSession] = useState<Session | null>(start.session);
+  const [expired, setExpired] = useState(() => !start.fromLink && !!start.session && isExpired(start.session));
   const [step, setStep] = useState<Step>(() => {
-    const s = loadSession();
-    if (!s || isExpired(s)) return "consent";
+    const s = start.session;
+    if (!s || (!start.fromLink && isExpired(s))) return "consent";
     return s.finished ? "done" : "back";
   });
   const q = useQueueStatus();
@@ -48,6 +64,8 @@ export function App() {
     return () => window.removeEventListener("beforeunload", warn);
   }, []);
   useEffect(() => { window.scrollTo(0, 0); }, [step]);
+  // the link has done its job; drop it from the address bar so a refresh cannot rebuild the session
+  useEffect(() => { if (start.fromLink) { const keep = new URLSearchParams(location.search).get("c"); history.replaceState(null, "", location.pathname + (keep ? `?c=${encodeURIComponent(keep)}` : "")); } }, [start.fromLink]);
   // the microphone is released whenever we are not on a screen that needs it
   useEffect(() => { if (step !== "mic" && step !== "record") mic.close(); }, [step]);
 
@@ -72,6 +90,7 @@ export function App() {
           <section className="sheet pad">
             <h1>Welcome back{session.name ? `, ${session.name}` : ""}</h1>
             <p>You’ve recorded <b className="num">{doneCount(session)}</b> of <b className="num">{totalTakes(session)}</b>. Carry on where you stopped, ideally with the same microphone and in a similarly quiet spot.</p>
+            {missingPieces(session) > 0 && <p>Since you started I’ve added the chess piece names (king, queen, rook, bishop, knight and pawn), so I’d love you to say those too.</p>}
             <div className="row">
               <button className="btn primary big" onClick={() => setStep("mic")}>Continue recording</button>
               <button className="btn ghost" onClick={() => { if (confirm("Start again as a new participant? Your earlier recordings stay with the project.")) startOver(); }}>That’s not me</button>
@@ -108,12 +127,14 @@ export function App() {
             session={session} queue={queue} status={q}
             canAddMore={session.targetRounds < MAX_ROUNDS}
             onMore={() => { const t = Math.min(MAX_ROUNDS, session.targetRounds + DEFAULT_ROUNDS); update({ ...session, targetRounds: t, round: session.targetRounds + 1, finished: false }); setStep("mic"); }}
+            missing={missingPieces(session)}
+            onCatchUp={() => { update({ ...session, finished: false, round: firstOpenRound(session) }); setStep("mic"); }}
             onForget={startOver}
           />
         )}
       </main>
       <footer className="foot">
-        <span>Letters A–H and numbers 1–8</span>
+        <span>Letters A–H, numbers 1–8 and the chess pieces</span>
         <span>Questions? <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></span>
       </footer>
     </div>

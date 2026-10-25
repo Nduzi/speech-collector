@@ -4,7 +4,7 @@ import { Icon } from "../icons";
 import { QueueStatus, UploadQueue } from "../lib/queue";
 import { Session, doneCount, shortId } from "../lib/session";
 
-export function Done({ session, queue, status, canAddMore, onMore, onForget }: { session: Session; queue: UploadQueue; status: QueueStatus; canAddMore: boolean; onMore: () => void; onForget: () => void }) {
+export function Done({ session, queue, status, canAddMore, onMore, onForget, missing, onCatchUp }: { session: Session; queue: UploadQueue; status: QueueStatus; canAddMore: boolean; onMore: () => void; onForget: () => void; missing: number; onCatchUp: () => void }) {
   const [copied, setCopied] = useState(false);
   const pending = status.waiting > 0;
   const stuck = status.failed > 0;
@@ -20,6 +20,15 @@ export function Done({ session, queue, status, canAddMore, onMore, onForget }: {
           <div className="row"><button className="btn primary" onClick={() => queue.retryNow()}><Icon n="refresh" /> Try again</button></div></div>
       )}
       {!pending && <div className="note ok" role="status"><Icon n="check" /> All recordings sent. You can close this page.</div>}
+
+      {missing > 0 && !pending && (
+        <div className="note">
+          <div>
+            <b>One more thing.</b> I’ve added the chess piece names (king, queen, rook, bishop, knight and pawn) since you started. Could you say those too? It’s {missing} more recording{missing === 1 ? "" : "s"}, about {Math.max(1, Math.round((missing * 4.5) / 60))} minute{Math.round((missing * 4.5) / 60) > 1 ? "s" : ""}.
+            <div className="row"><button className="btn primary big" onClick={onCatchUp}>Record the chess pieces</button></div>
+          </div>
+        </div>
+      )}
 
       <h2>Your participant ID</h2>
       <p className="muted small">Keep this ID. To have your recordings removed, email it to <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> and I’ll delete everything linked to it.</p>
